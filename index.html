@@ -391,7 +391,7 @@ const T=THREE,cP=0x8b5cff,cB=0x2ea8ff,cY=0xffc828,cW=0xdfeaff,cM=0xff3ec8,cC=0x2
 const KB={backpack:'1',career:'2',weapons:'3',tasks:'4',shop:'5',rewards:'6',settings:'7',play:'P',duels:'Q',ranked:'R',custom:'V',practice:'T',profile:'U',coins:'M'},
 kbd=k=>KB[k]?'<kbd class="kb">'+KB[k]+'</kbd>':'';
 const PERF={maxDpr:1.5,minScale:.9,target:40,lowDpr:.9};
-const R=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+const R=new T.WebGLRenderer({antialias:false,powerPreference:'default',failIfMajorPerformanceCaveat:false});
 let QMAX=Math.min(devicePixelRatio,PERF.maxDpr),PXR=QMAX,rdw=3;R.setPixelRatio(PXR);R.setSize(innerWidth,innerHeight);
 R.shadowMap.enabled=true;R.shadowMap.autoUpdate=false;R.shadowMap.needsUpdate=true;R.toneMapping=T.ACESFilmicToneMapping;R.toneMappingExposure=1.15;document.body.prepend(R.domElement);
 const S=new T.Scene();S.background=new T.Color(0x05060a);S.fog=new T.FogExp2(0x07080e,.0105);
