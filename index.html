@@ -314,13 +314,14 @@ window.CLASH_BOOT_OPEN=async function(mode){
      account overlay is already interactive. Wait for the real components
      instead of failing immediately on an early click. */
   const deadline=Date.now()+30000;
-  while((!window.ClashAccounts||!window.CLASH_MP_CONFIG||!window.MP_GAME)&&Date.now()<deadline){
+  while((!window.ClashAccounts||!window.CLASH_MP_CONFIG)&&Date.now()<deadline){
    await new Promise(resolve=>setTimeout(resolve,150));
   }
-  if(!window.ClashAccounts||!window.CLASH_MP_CONFIG||!window.MP_GAME)
-   throw Error('Game systems did not finish loading after 30 seconds. Reload CLASH and try again.');
+  if(!window.ClashAccounts||!window.CLASH_MP_CONFIG)
+   throw Error('Account scripts did not finish loading after 30 seconds. Reload CLASH and try again.');
   if(status)status.textContent='Starting account system…';
-  const start=()=>window.CLASH_ACCOUNT_START_PROMISE||(window.CLASH_ACCOUNT_START_PROMISE=window.ClashAccounts.start(window.CLASH_MP_CONFIG,window.MP_GAME));
+  const gameForAccounts=window.MP_GAME||{scene:()=>window.MP_GAME?.scene?.()||'lobby',freeze:on=>window.MP_GAME?.freeze?.(on)};
+  const start=()=>window.CLASH_ACCOUNT_START_PROMISE||(window.CLASH_ACCOUNT_START_PROMISE=window.ClashAccounts.start(window.CLASH_MP_CONFIG,gameForAccounts));
   const accounts=await start();
   if(accounts&&typeof accounts.open==='function')accounts.open(mode||'login');
   else throw Error('Account system started but the login form was unavailable. Reload CLASH and try again.');
@@ -333,7 +334,7 @@ window.CLASH_BOOT_OPEN=async function(mode){
   const card=document.getElementById('account-boot-card');
   if(!screen||!card||card.isConnected===false){clearInterval(timer);return;}
   if(window.CLASH_ACCOUNT_START_PROMISE){clearInterval(timer);return;}
-  if(window.ClashAccounts&&window.CLASH_MP_CONFIG&&window.MP_GAME){
+  if(window.ClashAccounts&&window.CLASH_MP_CONFIG){
    clearInterval(timer);
    window.CLASH_BOOT_OPEN('home');
    return;
