@@ -1,0 +1,73 @@
+name: Repair CLASH account startup
+on:
+  push:
+    paths:
+      - ".github/workflows/repair-clash-account.yml"
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+jobs:
+  repair-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Repair account startup gate
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("index.html")
+          s = p.read_text()
+          replacements = [
+            (
+              "while((!window.ClashAccounts||!window.CLASH_MP_CONFIG||!window.MP_GAME)&&Date.now()<deadline){",
+              "while((!window.ClashAccounts||!window.CLASH_MP_CONFIG)&&Date.now()<deadline){"
+            ),
+            (
+              "if(!window.ClashAccounts||!window.CLASH_MP_CONFIG||!window.MP_GAME)\n   throw Error('Game systems did not finish loading after 30 seconds. Reload CLASH and try again.');",
+              "if(!window.ClashAccounts||!window.CLASH_MP_CONFIG)\n   throw Error('Account scripts did not finish loading after 30 seconds. Reload CLASH and try again.');"
+            ),
+            (
+              "const start=()=>window.CLASH_ACCOUNT_START_PROMISE||(window.CLASH_ACCOUNT_START_PROMISE=window.ClashAccounts.start(window.CLASH_MP_CONFIG,window.MP_GAME));",
+              "const gameForAccounts=window.MP_GAME||{scene:()=>window.MP_GAME?.scene?.()||'lobby',freeze:on=>window.MP_GAME?.freeze?.(on)};\n  const start=()=>window.CLASH_ACCOUNT_START_PROMISE||(window.CLASH_ACCOUNT_START_PROMISE=window.ClashAccounts.start(window.CLASH_MP_CONFIG,gameForAccounts));"
+            ),
+            (
+              "if(window.ClashAccounts&&window.CLASH_MP_CONFIG&&window.MP_GAME){",
+              "if(window.ClashAccounts&&window.CLASH_MP_CONFIG){"
+            ),
+          ]
+          for old, new in replacements:
+              n = s.count(old)
+              if n != 1:
+                  raise SystemExit(f"Expected exactly one match for patch, got {n}: {old[:100]!r}")
+              s = s.replace(old, new, 1)
+          p.write_text(s)
+          print("Patched account startup to work even if the multiplayer bridge is delayed.")
+          PY
+      - name: Commit the repair and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/repair-clash-account.yml
+          git add index.html .github/workflows/repair-clash-account.yml
+          git commit -m "Fix CLASH account startup when multiplayer bridge is delayed"
+          git push origin main
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload repaired site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "."
+      - name: Deploy repaired site
+        id: deployment
+        uses: actions/deploy-pages@v4
